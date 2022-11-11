@@ -1,7 +1,9 @@
+//Importando bibliotecas
 import express from "express";
 import cors from "cors";
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
+import joi from "joi";
 //Configurando dotenv
 dotenv.config();
 //Configurando APP
@@ -15,6 +17,10 @@ const mongoClient = new MongoClient(process.env.MONGO_URL);
 let db;
 let messages;
 let participantes;
+//Criando Variaveis Globais com o Joi
+const participantesSchena = joi.object({
+  name: joi.string().required().min(3)
+});
 //Conectando mongo
 mongoClient.connect().then(() => {
   db = mongoClient.db("batepapo");
@@ -25,10 +31,18 @@ mongoClient.connect().then(() => {
 //Rotas post
 app.post("/participantes", async (req, res) => {
   const { name } = req.body;
-  if (!name) {
-    res.status(422).send("Insira um nome válido");
+  const validation = participantesSchena.validate(req.body, {abortEarly: false});
+  if(validation.error){
+    const erro = validation.error.details.map(detail => detail.message);
+    res.sendStatus(422);
     return;
   }
+  const validacao = await participantes.find({name}).toArray();
+  if(validacao.length !== 0){
+    res.sendStatus(409);
+    return;
+  }
+ 
   try {
     await participantes.insertOne({ name, lastStatus: Date.now() });
     res.status(201).send("Participante Criado");
