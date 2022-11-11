@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 //Configurando dotenv
 dotenv.config();
 //Configurando dayjs
-let now =dayjs().format("HH:mm:ss");
+
 //Configurando APP
 const app = express();
 app.use(express.json());
@@ -20,6 +20,7 @@ const mongoClient = new MongoClient(process.env.MONGO_URL);
 let db;
 let messages;
 let participantes;
+
 //Criando Variaveis Globais com o Joi
 const participantesSchena = joi.object({
   name: joi.string().required().min(3),
@@ -45,7 +46,7 @@ app.post("/participantes", async (req, res) => {
   if (validation.error) {
     const erro = validation.error.details.map((detail) => detail.message);
     console.log(erro)
-    res.sendStatus(422);
+    res.status(422).send(erro);
     return;
   }
   const validacao = await participantes.find({ name }).toArray();
@@ -66,6 +67,8 @@ app.post("/participantes", async (req, res) => {
 app.post("/messages", async (req, res) => {
   const { to, text, type } = req.body;
   const { user } = req.headers;
+  let now =dayjs().format("HH:mm:ss");
+  
   const validations = messagesSchena.validate(req.body, {abortEarly: false});
   if(validations.error){
   const erros = validations.error.details.map(detalhes => detalhes.message)
@@ -109,7 +112,8 @@ app.get("/participantes", async (req, res) => {
 
 app.get("/messages", async (req, res) => {
   const limit = parseInt(req.query.limit);
-  console.log(limit);
+  const {user} = req.headers;
+  console.log(user);
   if (limit) {
     try {
       const listaMessages = await messages.find().toArray();
@@ -122,7 +126,7 @@ app.get("/messages", async (req, res) => {
     }
   }
   try {
-    const listaMessages = await messages.find().toArray();
+    const listaMessages = await messages.find({$or: [{to: user}, {type: "message"}, {from: user}]}).toArray();
     res.status(201).send(listaMessages);
   } catch (err) {
     console.log(err);
