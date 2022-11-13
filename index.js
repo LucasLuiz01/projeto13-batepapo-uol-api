@@ -1,13 +1,28 @@
 //Importando bibliotecas
 import express from "express";
 import cors from "cors";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import joi from "joi";
 import dayjs from "dayjs";
 //Configurando dotenv
 dotenv.config();
-//Configurando dayjs
+//Funcao delete SetInterval
+setInterval(async ()=>{
+  console.log("apaguei");
+ const lista = await participantes.find().toArray();
+ const apagar = await participantes;
+ const menssagem = await messages;
+ lista.map((usuario)=>{
+  const horario = usuario.lastStatus;
+  if((Date.now() - horario)/1000 >= 10){
+    let now =dayjs().format("HH:mm:ss");
+     apagar.deleteOne(usuario);
+     menssagem.insertOne({ from: usuario.name, to: 'Todos', text: 'sai da sala...', type: 'status', time: now});
+  }
+ } )
+}, 1500);
+
 
 //Configurando APP
 const app = express();
@@ -34,11 +49,11 @@ const messagesSchena = joi.object({
 mongoClient.connect().then(() => {
   db = mongoClient.db("batepapo");
   messages = db.collection("messages");
-  participantes = db.collection("participante");
+  participantes = db.collection("participants");
 });
 
 //Rotas post
-app.post("/participantes", async (req, res) => {
+app.post("/participants", async (req, res) => {
   const { name } = req.body;
   const validation = participantesSchena.validate(req.body, {
     abortEarly: false,
@@ -92,15 +107,32 @@ app.post("/messages", async (req, res) => {
 });
 app.post("/status", async (req, res) => {
   const { user } = req.headers;
-  try {
-  } catch (err) {
-    console.log(err);
-    res.sendStatus(500);
+  console.log(user);
+  try{
+    const online = await participantes.findOne({name: user})
+    if(!online){
+      res.sendStatus(404);
+      return;
+    }
+      await  participantes.updateOne(
+        {
+          name: user
+        },
+        {
+          $set: {lastStatus: Date.now()}
+        }
+      );
+      res.sendStatus(201);
+
+  } catch(err) {
+    res.status(422).send(err);
   }
+ 
+
 });
 
 //Rotas get
-app.get("/participantes", async (req, res) => {
+app.get("/participants", async (req, res) => {
   try {
     let listaParticipantes = await participantes.find().toArray();
     res.status(201).send(listaParticipantes);
