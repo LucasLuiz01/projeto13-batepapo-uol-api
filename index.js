@@ -21,7 +21,7 @@ setInterval(async ()=>{
      menssagem.insertOne({ from: usuario.name, to: 'Todos', text: 'sai da sala...', type: 'status', time: now});
   }
  } )
-}, 1500);
+}, 15000);
 
 
 //Configurando APP
