@@ -5,11 +5,14 @@ import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import joi from "joi";
 import dayjs from "dayjs";
+//Configurando APP
+const app = express();
+app.use(express.json());
+app.use(cors());
 //Configurando dotenv
 dotenv.config();
 //Funcao delete SetInterval
 setInterval(async ()=>{
-  console.log("apaguei");
  const lista = await participantes.find().toArray();
  const apagar = await participantes;
  const menssagem = await messages;
@@ -24,10 +27,7 @@ setInterval(async ()=>{
 }, 15000);
 
 
-//Configurando APP
-const app = express();
-app.use(express.json());
-app.use(cors());
+
 
 //Configurando Mongo
 const mongoClient = new MongoClient(process.env.MONGO_URL);
@@ -92,8 +92,8 @@ app.post("/messages", async (req, res) => {
   return;    
   }
   const usuario = await participantes.find({name: user}).toArray();
-  if(usuario.length !== 0){
-    res.sendStatus(409);
+  if(usuario.length === 0){
+    res.sendStatus(401);
     return;
   }
 
@@ -148,7 +148,7 @@ app.get("/messages", async (req, res) => {
   console.log(user);
   if (limit) {
     try {
-      const listaMessages = await messages.find().toArray();
+      const listaMessages = await messages.find({$or: [{to: user}, {type: "message"}, {type: "status"}, {from: user}]}).toArray();
       res.status(201).send(listaMessages.slice(-limit));
       return;
     } catch (err) {
@@ -158,7 +158,7 @@ app.get("/messages", async (req, res) => {
     }
   }
   try {
-    const listaMessages = await messages.find({$or: [{to: user}, {type: "message"}, {from: user}]}).toArray();
+    const listaMessages = await messages.find({$or: [{to: user}, {type: "message"}, {type: "status"}, {from: user}]}).toArray();
     res.status(201).send(listaMessages);
   } catch (err) {
     console.log(err);
